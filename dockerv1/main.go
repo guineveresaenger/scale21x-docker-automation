@@ -3,19 +3,18 @@ package main
 import (
 	"bufio"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/docker/docker/client"
-	"io"
-	"time"
-
 	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/pkg/archive"
-	"github.com/ryboe/q"
-)
+	"github.com/docker/docker/api/types/registry"
+	"os"
 
-var dockerRegistryUserID = "gsaenger"
+	"github.com/docker/docker/client"
+	"github.com/docker/docker/pkg/archive"
+	"io"
+)
 
 type ErrorLine struct {
 	Error       string      `json:"error"`
@@ -27,50 +26,71 @@ type ErrorDetail struct {
 }
 
 func main() {
-	q.Q("wtf")
-	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	dockerClient, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
 		fmt.Println(err.Error())
 		return
 	}
-
-	err = imageBuild(cli)
-	if err != nil {
-		fmt.Println(err.Error())
-		return
-	}
-}
-
-func imageBuild(dockerClient *client.Client) error {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*120)
-	defer cancel()
 
 	tar, err := archive.TarWithOptions("app/", &archive.TarOptions{})
 	if err != nil {
-		return err
+		fmt.Println(err.Error())
+		return
 	}
 
 	opts := types.ImageBuildOptions{
 		Dockerfile: "Dockerfile",
-		Tags:       []string{dockerRegistryUserID + "/app"},
+		Tags:       []string{"gsaenger/hello-go"},
 		Remove:     true,
+		Version:    types.BuilderV1,
+		Platform:   "amd64",
 	}
-	res, err := dockerClient.ImageBuild(ctx, tar, opts)
+	res, err := dockerClient.ImageBuild(context.Background(), tar, opts)
 	if err != nil {
-		return err
+		fmt.Println(err.Error())
+		return
 	}
 
 	defer res.Body.Close()
 
-	err = print(res.Body)
+	err = printOutput(res.Body)
 	if err != nil {
-		return err
+		fmt.Println(err.Error())
+		return
 	}
 
-	return nil
+	// Log into the registry
+
+	var authConfig = registry.AuthConfig{
+		Username:      "gsaenger",
+		Password:      os.Getenv("DOCKER_PASS"),
+		ServerAddress: "https://index.docker.io/v1/",
+	}
+
+	authConfigBytes, _ := json.Marshal(authConfig)
+	authConfigEncoded := base64.URLEncoding.EncodeToString(authConfigBytes)
+
+	// Push image
+
+	tag := "gsaenger/hello-go"
+	pushOpts := types.ImagePushOptions{RegistryAuth: authConfigEncoded}
+	rd, err := dockerClient.ImagePush(context.Background(), tag, pushOpts)
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+
+	defer rd.Close()
+
+	err = printOutput(rd)
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+
 }
 
-func print(rd io.Reader) error {
+func printOutput(rd io.Reader) error {
 	var lastLine string
 
 	scanner := bufio.NewScanner(rd)
