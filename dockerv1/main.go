@@ -1,4 +1,4 @@
-package dockerv1
+package main
 
 import (
 	"bufio"
@@ -6,15 +6,16 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/docker/docker/client"
 	"io"
 	"time"
 
 	"github.com/docker/docker/api/types"
-	client "github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/archive"
+	"github.com/ryboe/q"
 )
 
-var dockerRegistryUserID = ""
+var dockerRegistryUserID = "gsaenger"
 
 type ErrorLine struct {
 	Error       string      `json:"error"`
@@ -26,6 +27,7 @@ type ErrorDetail struct {
 }
 
 func main() {
+	q.Q("wtf")
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
 		fmt.Println(err.Error())
