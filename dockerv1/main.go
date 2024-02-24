@@ -16,15 +16,6 @@ import (
 	"io"
 )
 
-type ErrorLine struct {
-	Error       string      `json:"error"`
-	ErrorDetail ErrorDetail `json:"errorDetail"`
-}
-
-type ErrorDetail struct {
-	Message string `json:"message"`
-}
-
 func main() {
 	dockerClient, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
@@ -88,6 +79,15 @@ func main() {
 		return
 	}
 
+}
+
+type ErrorLine struct {
+	Error       string      `json:"error"`
+	ErrorDetail ErrorDetail `json:"errorDetail"`
+}
+
+type ErrorDetail struct {
+	Message string `json:"message"`
 }
 
 func printOutput(rd io.Reader) error {
