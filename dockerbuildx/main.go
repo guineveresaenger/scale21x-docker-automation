@@ -5,42 +5,51 @@ import (
 	"fmt"
 	buildx "github.com/docker/buildx/build"
 	"github.com/docker/buildx/builder"
+	"github.com/docker/buildx/controller/pb"
 	"github.com/docker/buildx/util/dockerutil"
 	"github.com/docker/buildx/util/progress"
 	"github.com/docker/cli/cli/command"
 	"github.com/docker/cli/cli/flags"
 	"github.com/moby/buildkit/util/progress/progressui"
-	"os"
 	"path/filepath"
+
+	//cfgtypes "github.com/docker/cli/cli/config/types"
+	"os"
 )
 
 func main() {
 	cli, err := command.NewDockerCli(
 		command.WithCombinedStreams(os.Stdout),
 	)
+	buildCtx := context.Background()
 	if err != nil {
 		fmt.Println(err.Error())
 		return
 	}
 
-	opts := &flags.ClientOptions{
-		// TODO(github.com/pulumi/pulumi-docker/issues/946): Support TLS options
-	}
+	opts := &flags.ClientOptions{}
 	err = cli.Initialize(opts)
 
-	buildCtx := context.Background()
+	pbOpts := pb.BuildOptions{
+		ContextPath:    "app/",
+		DockerfileName: "app/Dockerfile",
+	}
 
-	builder, err := builder.New(cli)
-
+	builder, err := builder.New(cli,
+		builder.WithName(pbOpts.Builder),
+		builder.WithContextPathHash("/Users/guin/go/src/github.com/guineveresaenger/docker-talk/dockerbuildx/app"))
 	if err != nil {
 		fmt.Println(err.Error())
 		return
 	}
+
 	nodes, err := builder.LoadNodes(buildCtx)
 	if err != nil {
 		fmt.Println(err.Error())
 		return
 	}
+	//
+	//panic(builder.Driver)
 	payload := map[string]buildx.Options{}
 	payload["default"] = buildx.Options{
 		Inputs: buildx.Inputs{
