@@ -13,6 +13,9 @@ import (
 	"github.com/moby/buildkit/util/progress/progressui"
 	"path/filepath"
 
+	_ "github.com/docker/buildx/driver/docker-container"
+	_ "github.com/docker/buildx/driver/kubernetes"
+	_ "github.com/docker/buildx/driver/remote"
 	//cfgtypes "github.com/docker/cli/cli/config/types"
 	"os"
 )
@@ -31,13 +34,16 @@ func main() {
 	err = cli.Initialize(opts)
 
 	pbOpts := pb.BuildOptions{
-		ContextPath:    "app/",
-		DockerfileName: "app/Dockerfile",
+		ContextPath:    "./app/",
+		DockerfileName: "./app/Dockerfile",
+		//Builder:        "newBuilder",
 	}
 
 	builder, err := builder.New(cli,
 		builder.WithName(pbOpts.Builder),
-		builder.WithContextPathHash("/Users/guin/go/src/github.com/guineveresaenger/docker-talk/dockerbuildx/app"))
+		builder.WithContextPathHash("/Users/guin/go/src/github.com/guineveresaenger/docker-talk/dockerbuildx/app"),
+	)
+
 	if err != nil {
 		fmt.Println(err.Error())
 		return
@@ -48,13 +54,12 @@ func main() {
 		fmt.Println(err.Error())
 		return
 	}
-	//
-	//panic(builder.Driver)
+
 	payload := map[string]buildx.Options{}
 	payload["default"] = buildx.Options{
 		Inputs: buildx.Inputs{
-			ContextPath:    ".",
-			DockerfilePath: "Dockerfile",
+			ContextPath:    "app",
+			DockerfilePath: "app/Dockerfile",
 		},
 
 		//Platforms: []string{"arm64"},
