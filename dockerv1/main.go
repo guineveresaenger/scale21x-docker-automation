@@ -9,11 +9,10 @@ import (
 	"fmt"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/registry"
-	"os"
-
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/archive"
 	"io"
+	"os"
 )
 
 func main() {
@@ -32,9 +31,8 @@ func main() {
 	opts := types.ImageBuildOptions{
 		Dockerfile: "Dockerfile",
 		Tags:       []string{"gsaenger/hello-go"},
-		Remove:     true,
 		Version:    types.BuilderV1,
-		Platform:   "amd64",
+		Platform:   "arm64",
 	}
 	res, err := dockerClient.ImageBuild(context.Background(), tar, opts)
 	if err != nil {
@@ -50,7 +48,7 @@ func main() {
 		return
 	}
 
-	// Log into the registry
+	//Log into the registry
 
 	var authConfig = registry.AuthConfig{
 		Username:      "gsaenger",
@@ -65,20 +63,19 @@ func main() {
 
 	tag := "gsaenger/hello-go"
 	pushOpts := types.ImagePushOptions{RegistryAuth: authConfigEncoded}
-	rd, err := dockerClient.ImagePush(context.Background(), tag, pushOpts)
+	pushLogs, err := dockerClient.ImagePush(context.Background(), tag, pushOpts)
 	if err != nil {
 		fmt.Println(err.Error())
 		return
 	}
 
-	defer rd.Close()
+	defer pushLogs.Close()
 
-	err = printOutput(rd)
+	err = printOutput(pushLogs)
 	if err != nil {
 		fmt.Println(err.Error())
 		return
 	}
-
 }
 
 type ErrorLine struct {
