@@ -61,3 +61,11 @@ if err != nil {
 fmt.Println(err.Error())
 return
 }
+
+
+// Run the container
+startOpts := container.StartOptions{}
+
+if err := dockerClient.ContainerStart(context.Background(), "4f2eb408263a", startOpts); err != nil {
+panic(err)
+}
