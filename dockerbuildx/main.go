@@ -1,7 +1,11 @@
 package main
 
 import (
+	"bufio"
 	"context"
+	_ "encoding/base64"
+	"encoding/json"
+	"errors"
 	"fmt"
 	buildx "github.com/docker/buildx/build"
 	"github.com/docker/buildx/builder"
@@ -10,7 +14,11 @@ import (
 	"github.com/docker/buildx/util/progress"
 	"github.com/docker/cli/cli/command"
 	"github.com/docker/cli/cli/flags"
+	_ "github.com/docker/docker/api/types"
+	_ "github.com/docker/docker/api/types/registry"
+	_ "github.com/docker/docker/client"
 	"github.com/moby/buildkit/util/progress/progressui"
+	"io"
 	"path/filepath"
 
 	_ "github.com/docker/buildx/driver/docker-container"
@@ -99,4 +107,36 @@ func main() {
 		fmt.Println(key, ": ", val)
 	}
 	fmt.Println(results)
+
+}
+
+type ErrorLine struct {
+	Error       string      `json:"error"`
+	ErrorDetail ErrorDetail `json:"errorDetail"`
+}
+
+type ErrorDetail struct {
+	Message string `json:"message"`
+}
+
+func printOutput(rd io.Reader) error {
+	var lastLine string
+
+	scanner := bufio.NewScanner(rd)
+	for scanner.Scan() {
+		lastLine = scanner.Text()
+		fmt.Println(scanner.Text())
+	}
+
+	errLine := &ErrorLine{}
+	json.Unmarshal([]byte(lastLine), errLine)
+	if errLine.Error != "" {
+		return errors.New(errLine.Error)
+	}
+
+	if err := scanner.Err(); err != nil {
+		return err
+	}
+
+	return nil
 }
