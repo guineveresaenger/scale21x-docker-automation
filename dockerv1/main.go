@@ -3,16 +3,23 @@ package main
 import (
 	"bufio"
 	"context"
-	"encoding/base64"
+	_ "encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/docker/cli/cli/config"
+	"github.com/docker/cli/cli/config/configfile"
+	"github.com/docker/cli/cli/config/credentials"
 	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/api/types/registry"
+	_ "github.com/docker/docker/api/types/registry"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/archive"
+	_ "github.com/moby/buildkit/identity"
+	_ "github.com/moby/buildkit/session"
+	_ "github.com/moby/buildkit/session/auth/authprovider"
 	"io"
-	"os"
+	_ "net"
+	_ "os"
 )
 
 func main() {
@@ -32,8 +39,9 @@ func main() {
 		Dockerfile: "Dockerfile",
 		Tags:       []string{"gsaenger/hello-go"},
 		Version:    types.BuilderV1,
-		Platform:   "arm64",
+		Platform:   "amd64",
 	}
+
 	res, err := dockerClient.ImageBuild(context.Background(), tar, opts)
 	if err != nil {
 		fmt.Println(err.Error())
@@ -48,34 +56,6 @@ func main() {
 		return
 	}
 
-	//Log into the registry
-
-	var authConfig = registry.AuthConfig{
-		Username:      "gsaenger",
-		Password:      os.Getenv("DOCKER_PASS"),
-		ServerAddress: "https://index.docker.io/v1/",
-	}
-
-	authConfigBytes, _ := json.Marshal(authConfig)
-	authConfigEncoded := base64.URLEncoding.EncodeToString(authConfigBytes)
-
-	// Push image
-
-	tag := "gsaenger/hello-go"
-	pushOpts := types.ImagePushOptions{RegistryAuth: authConfigEncoded}
-	pushLogs, err := dockerClient.ImagePush(context.Background(), tag, pushOpts)
-	if err != nil {
-		fmt.Println(err.Error())
-		return
-	}
-
-	defer pushLogs.Close()
-
-	err = printOutput(pushLogs)
-	if err != nil {
-		fmt.Println(err.Error())
-		return
-	}
 }
 
 type ErrorLine struct {
@@ -107,4 +87,13 @@ func printOutput(rd io.Reader) error {
 	}
 
 	return nil
+}
+
+func getDefaultDockerConfig() (*configfile.ConfigFile, error) {
+	cfg, err := config.Load(config.Dir())
+	if err != nil {
+		return nil, err
+	}
+	cfg.CredentialsStore = credentials.DetectDefaultStore(cfg.CredentialsStore)
+	return cfg, nil
 }
