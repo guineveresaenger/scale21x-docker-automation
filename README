@@ -1,0 +1,8 @@
+# scale21x-docker-automation
+
+This repository is a collection of code demonstrated at SCaLE21x as part of my presentation,
+[Container Automation With Docker: No more Shelling out](https://www.socallinuxexpo.org/scale/21x/presentations/container-automation-docker-no-more-shelling-out).
+
+This repository probably won't be maintained actively as it is meant to provide an entry point for folks interested in trying
+out the Golang clients for Docker.
+I hope sincerely that some of you may find it useful. :) 
